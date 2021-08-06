@@ -20,7 +20,7 @@ const queryClient = new QueryClient({
 });
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:3000'
+  baseURL: 'http://localhost:3000/api/'
 });
 
 function App() {

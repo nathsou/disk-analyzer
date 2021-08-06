@@ -1,8 +1,8 @@
 use super::biggest::{Biggest, DocInfo};
+use serde::Serialize;
 use std::fs::{metadata, read_dir};
 use std::io;
 use std::path::Path;
-use serde::{Serialize};
 
 pub struct DirInfo {
     pub size: usize,
@@ -62,7 +62,7 @@ pub fn dir_info(
 #[derive(Serialize)]
 pub struct DirContents {
     pub files: Vec<String>,
-    pub directories: Vec<String>
+    pub directories: Vec<String>,
 }
 
 pub fn ls(path: &Path) -> io::Result<DirContents> {
@@ -85,6 +85,6 @@ pub fn ls(path: &Path) -> io::Result<DirContents> {
 
     Ok(DirContents {
         files,
-        directories: dirs
+        directories: dirs,
     })
 }
