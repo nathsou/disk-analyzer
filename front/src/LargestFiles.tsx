@@ -1,16 +1,27 @@
 import React, { FC } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, UseQueryResult } from 'react-query';
 import { Link } from 'wouter';
 import { useAxios } from './AxiosProvider';
+import { RepartitionPlot } from './RepartitionPlot';
 import { formatSize } from './utils';
 
 export interface LargestFilesProps {
   path: string
 }
 
-export const LargestFiles: FC<LargestFilesProps> = ({ path }) => {
+export type DirEndpointData = {
+  path: string,
+  size: number,
+  files_count: number,
+  duration: number,
+  biggest_dirs: Array<{ path: string, size: number }>,
+  biggest_files: Array<{ path: string, size: number }>,
+};
+
+export const useLargest = (path: string): UseQueryResult<DirEndpointData> => {
   const axios = useAxios();
-  const largest = useQuery(['dir', path], async () => {
+
+  return useQuery(['dir', path], async () => {
     const { data } = await axios.get('dir', {
       params: {
         path
@@ -19,18 +30,22 @@ export const LargestFiles: FC<LargestFilesProps> = ({ path }) => {
 
     return data;
   });
+};
+
+export const LargestFiles: FC<LargestFilesProps> = ({ path }) => {
+  const largest = useLargest(path);
 
   if (largest.isError) {
     return <p>Error</p>;
   }
 
-  if (largest.isLoading) {
+  if (largest.isLoading || largest.data === undefined) {
     return <p>Loading...</p>;
   }
 
   return (
     <div style={{ marginLeft: 4 }}>
-      <p>{largest.data?.files_count} files ({formatSize(largest.data?.size)})</p>
+      <p>{largest.data?.files_count} files ({formatSize(largest.data.size)})</p>
       <h4>Directories</h4>
       <ul>
         {largest.data?.biggest_dirs.map(({ size, path: dirPath }: { size: number, path: string }) =>
@@ -39,6 +54,8 @@ export const LargestFiles: FC<LargestFilesProps> = ({ path }) => {
           </li>
         )}
       </ul>
+
+      <RepartitionPlot folders={largest.data.biggest_dirs} />
 
       <h4>Files</h4>
       <ul>

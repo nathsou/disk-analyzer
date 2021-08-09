@@ -60,12 +60,24 @@ pub fn dir_info(
 }
 
 #[derive(Serialize)]
-pub struct DirContents {
-    pub files: Vec<String>,
-    pub directories: Vec<String>,
+pub struct DirContentsInfo {
+    path: String,
+    size: Option<usize>,
 }
 
-pub fn ls(path: &Path) -> io::Result<DirContents> {
+#[derive(Serialize)]
+pub struct DirContentsFileInfo {
+    path: String,
+    size: usize,
+}
+
+#[derive(Serialize)]
+pub struct DirContents {
+    pub directories: Vec<DirContentsInfo>,
+    pub files: Vec<DirContentsFileInfo>,
+}
+
+pub fn ls(path: &Path, show_dir_size: bool) -> io::Result<DirContents> {
     let mut files = vec![];
     let mut dirs = vec![];
 
@@ -75,16 +87,55 @@ pub fn ls(path: &Path) -> io::Result<DirContents> {
                 let sub_path = entry?.path();
 
                 if sub_path.is_file() {
-                    files.push(str_of_path(&sub_path));
+                    files.push(DirContentsFileInfo {
+                        path: str_of_path(&sub_path),
+                        size: metadata(sub_path)?.len() as usize,
+                    });
                 } else {
-                    dirs.push(str_of_path(&sub_path));
+                    dirs.push(DirContentsInfo {
+                        path: str_of_path(&sub_path),
+                        size: if show_dir_size {
+                            Some(dir_size(&sub_path)?)
+                        } else {
+                            None
+                        },
+                    });
                 }
             }
         }
+    }
+
+    files.sort_by_key(|f| f.size);
+    files.reverse();
+
+    if show_dir_size {
+        dirs.sort_by_key(|d| d.size);
+        dirs.reverse();
     }
 
     Ok(DirContents {
         files,
         directories: dirs,
     })
+}
+
+pub fn dir_size(path: &Path) -> io::Result<usize> {
+    let mut total_size = 0;
+
+    if path.is_dir() {
+        if let Ok(entries) = read_dir(path) {
+            for entry in entries {
+                let sub_path = entry?.path();
+
+                if sub_path.is_file() {
+                    let file_size = metadata(&sub_path)?.len() as usize;
+                    total_size += file_size;
+                } else {
+                    total_size += dir_size(&sub_path)?;
+                }
+            }
+        }
+    }
+
+    Ok(total_size)
 }

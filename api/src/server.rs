@@ -27,9 +27,7 @@ struct DirInfoRes {
 }
 
 fn error_msg(msg: String) -> Result<warp::reply::Json, warp::Rejection> {
-    Ok(warp::reply::json(&ErrorMessage {
-        message: msg
-    }))
+    Ok(warp::reply::json(&ErrorMessage { message: msg }))
 }
 
 async fn get_dir_info(params: DirInfoParams) -> Result<impl warp::Reply, Rejection> {
@@ -56,7 +54,7 @@ async fn get_dir_info(params: DirInfoParams) -> Result<impl warp::Reply, Rejecti
                     biggest_files: biggest_files.values(),
                 }))
             }
-            Err(err) => error_msg(format!("{}", err))
+            Err(err) => error_msg(format!("{}", err)),
         }
     } else {
         error_msg(String::from("'path' is required"))
@@ -65,14 +63,15 @@ async fn get_dir_info(params: DirInfoParams) -> Result<impl warp::Reply, Rejecti
 
 #[derive(Deserialize)]
 pub struct DirContentsParams {
-    pub path: Option<String>
+    pub path: Option<String>,
+    pub show_dir_size: bool,
 }
 
 async fn get_dir_contents(params: DirContentsParams) -> Result<impl warp::Reply, Rejection> {
     if let Some(path) = params.path {
-        match ls(Path::new(&path)) {
+        match ls(Path::new(&path), params.show_dir_size) {
             Ok(contents) => Ok(warp::reply::json(&contents)),
-            Err(err) => error_msg(format!("{}", err))
+            Err(err) => error_msg(format!("{}", err)),
         }
     } else {
         error_msg(String::from("'path' is required"))
@@ -86,6 +85,7 @@ pub async fn serve() {
         .and(warp::query::<DirInfoParams>())
         .and_then(get_dir_info);
 
+    // GET /ls?path=/Users/nathan
     let ls_req = warp::path!("ls")
         .and(warp::get())
         .and(warp::query::<DirContentsParams>())
