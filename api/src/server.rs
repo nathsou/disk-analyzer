@@ -2,6 +2,7 @@ use super::biggest::{Biggest, DocInfo};
 use super::dir_info::{dir_info, ls};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::sync::Arc;
 use warp::{Filter, Rejection};
 
 #[derive(Deserialize)]
@@ -67,9 +68,12 @@ pub struct DirContentsParams {
     pub show_dir_size: bool,
 }
 
-async fn get_dir_contents(params: DirContentsParams) -> Result<impl warp::Reply, Rejection> {
+async fn get_dir_contents(
+    params: DirContentsParams,
+    db: Arc<sled::Db>,
+) -> Result<impl warp::Reply, Rejection> {
     if let Some(path) = params.path {
-        match ls(Path::new(&path), params.show_dir_size) {
+        match ls(Path::new(&path), params.show_dir_size, db) {
             Ok(contents) => Ok(warp::reply::json(&contents)),
             Err(err) => error_msg(format!("{}", err)),
         }
@@ -79,6 +83,8 @@ async fn get_dir_contents(params: DirContentsParams) -> Result<impl warp::Reply,
 }
 
 pub async fn serve() {
+    let db = Arc::new(sled::open("./directory_sizes").expect("Could not open local database"));
+
     // GET /dir?path=/Users/nathan
     let dir_req = warp::path!("dir")
         .and(warp::get())
@@ -89,11 +95,13 @@ pub async fn serve() {
     let ls_req = warp::path!("ls")
         .and(warp::get())
         .and(warp::query::<DirContentsParams>())
-        .and_then(get_dir_contents);
+        .and_then(move |params| get_dir_contents(params, db.clone()));
 
-    let routes = dir_req.or(ls_req).with(warp::log("dev"));
+    let api = warp::path("api")
+        .and(dir_req.or(ls_req))
+        .with(warp::log("dev"));
 
     println!("Listening on port 3030");
 
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(api).run(([127, 0, 0, 1], 3030)).await;
 }

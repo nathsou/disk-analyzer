@@ -22,7 +22,7 @@ export const useLargest = (path: string): UseQueryResult<DirEndpointData> => {
   const axios = useAxios();
 
   return useQuery(['dir', path], async () => {
-    const { data } = await axios.get('dir', {
+    const { data } = await axios.get('api/dir', {
       params: {
         path
       }
@@ -55,7 +55,7 @@ export const LargestFiles: FC<LargestFilesProps> = ({ path }) => {
         )}
       </ul>
 
-      <RepartitionPlot folders={largest.data.biggest_dirs} />
+      <RepartitionPlot items={largest.data.biggest_dirs} />
 
       <h4>Files</h4>
       <ul>

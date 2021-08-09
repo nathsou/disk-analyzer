@@ -1,8 +1,9 @@
 use super::biggest::{Biggest, DocInfo};
-use serde::Serialize;
-use std::fs::{metadata, read_dir};
+use serde::{Deserialize, Serialize};
+use std::fs::{read_dir, symlink_metadata};
 use std::io;
 use std::path::Path;
+use std::sync::Arc;
 
 pub struct DirInfo {
     pub size: usize,
@@ -25,9 +26,10 @@ pub fn dir_info(
         if let Ok(entries) = read_dir(path) {
             for entry in entries {
                 let sub_path = entry?.path();
+                let md = symlink_metadata(&sub_path)?;
 
-                if sub_path.is_file() {
-                    let file_size = metadata(&sub_path)?.len() as usize;
+                if md.is_file() {
+                    let file_size = md.len() as usize;
                     total_size += file_size;
                     files_count += 1;
 
@@ -37,7 +39,7 @@ pub fn dir_info(
                             size: file_size,
                         });
                     }
-                } else {
+                } else if md.is_dir() {
                     let info = dir_info(&sub_path, biggest_dirs, biggest_files)?;
                     total_size += info.size;
                     files_count += info.files_count;
@@ -77,7 +79,7 @@ pub struct DirContents {
     pub files: Vec<DirContentsFileInfo>,
 }
 
-pub fn ls(path: &Path, show_dir_size: bool) -> io::Result<DirContents> {
+pub fn ls(path: &Path, show_dir_size: bool, db: Arc<sled::Db>) -> io::Result<DirContents> {
     let mut files = vec![];
     let mut dirs = vec![];
 
@@ -85,17 +87,18 @@ pub fn ls(path: &Path, show_dir_size: bool) -> io::Result<DirContents> {
         if let Ok(entries) = read_dir(path) {
             for entry in entries {
                 let sub_path = entry?.path();
+                let md = symlink_metadata(&sub_path)?;
 
-                if sub_path.is_file() {
+                if md.is_file() {
                     files.push(DirContentsFileInfo {
                         path: str_of_path(&sub_path),
-                        size: metadata(sub_path)?.len() as usize,
+                        size: md.len() as usize,
                     });
-                } else {
+                } else if md.is_dir() {
                     dirs.push(DirContentsInfo {
                         path: str_of_path(&sub_path),
                         size: if show_dir_size {
-                            Some(dir_size(&sub_path)?)
+                            Some(dir_size(&sub_path, db.clone())?)
                         } else {
                             None
                         },
@@ -119,23 +122,52 @@ pub fn ls(path: &Path, show_dir_size: bool) -> io::Result<DirContents> {
     })
 }
 
-pub fn dir_size(path: &Path) -> io::Result<usize> {
+#[derive(Serialize, Deserialize)]
+struct DirectorySize {
+    size: usize,
+    last_modified: std::time::SystemTime,
+}
+
+pub fn dir_size(path: &Path, db: Arc<sled::Db>) -> io::Result<usize> {
+    let key = str_of_path(path);
+    let md = symlink_metadata(path)?;
+    let last_modified = md.modified()?;
+
+    if let Some(data) = db.get(key.clone())? {
+        let ds: DirectorySize =
+            bincode::deserialize(&data).expect("Could not deserialize from database");
+
+        if ds.last_modified >= last_modified {
+            return Ok(ds.size);
+        }
+    }
+
     let mut total_size = 0;
 
-    if path.is_dir() {
+    if md.is_dir() {
         if let Ok(entries) = read_dir(path) {
             for entry in entries {
                 let sub_path = entry?.path();
+                let md = symlink_metadata(&sub_path)?;
 
-                if sub_path.is_file() {
-                    let file_size = metadata(&sub_path)?.len() as usize;
+                if md.is_file() {
+                    let file_size = md.len() as usize;
                     total_size += file_size;
-                } else {
-                    total_size += dir_size(&sub_path)?;
+                } else if md.is_dir() {
+                    total_size += dir_size(&sub_path, db.clone())?;
                 }
             }
         }
     }
+
+    db.insert(
+        key,
+        bincode::serialize(&DirectorySize {
+            size: total_size,
+            last_modified,
+        })
+        .expect("Could not serialize directory info"),
+    )?;
 
     Ok(total_size)
 }
