@@ -19,7 +19,7 @@ jobs:
       - name: Build
         run: |
           make build
-          mkdir build/${{ matrix.os }}
+          mkdir -p build/${{ matrix.os }}
           mv disk-analyzer build/${{ matrix.os }}
     
       - name: Push
