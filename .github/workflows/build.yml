@@ -17,9 +17,9 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build
-        run: make build
-        run: mkdir build/${{ matrix.os }}
-        run: mv disk-analyzer build/${{ matrix.os }}
+      - run: make build
+      - run: mkdir build/${{ matrix.os }}
+      - run: mv disk-analyzer build/${{ matrix.os }}
     
       - name: Push
         uses: s0/git-publish-subdir-action@develop
