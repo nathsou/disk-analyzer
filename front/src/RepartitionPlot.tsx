@@ -30,7 +30,7 @@ export const RepartitionPlot: FC<RepartitionPlotProps> = ({ items, onClick }) =>
       width={450}
       height={450}
       data={data}
-      margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+      margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
       cornerRadius={3}
       activeOuterRadiusOffset={8}
       borderWidth={1}

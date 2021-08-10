@@ -77,6 +77,7 @@ pub struct DirContentsFileInfo {
 pub struct DirContents {
     pub directories: Vec<DirContentsInfo>,
     pub files: Vec<DirContentsFileInfo>,
+    pub size: usize,
 }
 
 pub fn ls(path: &Path, show_dir_size: bool, db: Arc<sled::Db>) -> io::Result<DirContents> {
@@ -116,9 +117,13 @@ pub fn ls(path: &Path, show_dir_size: bool, db: Arc<sled::Db>) -> io::Result<Dir
         dirs.reverse();
     }
 
+    let files_size: usize = files.iter().map(|f| f.size).sum();
+    let dirs_size: usize = dirs.iter().map(|d| d.size.unwrap_or(0)).sum();
+
     Ok(DirContents {
         files,
         directories: dirs,
+        size: files_size + dirs_size,
     })
 }
 
@@ -148,13 +153,19 @@ pub fn dir_size(path: &Path, db: Arc<sled::Db>) -> io::Result<usize> {
         if let Ok(entries) = read_dir(path) {
             for entry in entries {
                 let sub_path = entry?.path();
-                let md = symlink_metadata(&sub_path)?;
 
-                if md.is_file() {
-                    let file_size = md.len() as usize;
-                    total_size += file_size;
-                } else if md.is_dir() {
-                    total_size += dir_size(&sub_path, db.clone())?;
+                match symlink_metadata(&sub_path) {
+                    Ok(md) => {
+                        if md.is_file() {
+                            let file_size = md.len() as usize;
+                            total_size += file_size;
+                        } else if md.is_dir() {
+                            total_size += dir_size(&sub_path, db.clone())?;
+                        }
+                    }
+                    Err(err) => {
+                        println!("Error on path {} : {}", path.display(), err);
+                    }
                 }
             }
         }

@@ -19,8 +19,13 @@ const queryClient = new QueryClient({
   }
 });
 
+///@ts-ignore
+const PRODUCTION = import.meta.env.MODE !== 'development';
+
+const PORT = PRODUCTION ? 3030 : 3000;
+
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:3030/api/'
+  baseURL: `http://localhost:${PORT}/api/`
 });
 
 function App() {

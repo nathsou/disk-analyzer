@@ -13,16 +13,27 @@ export const Path: FC<{ path: string }> = ({ path }) => {
     <div style={{ display: 'flex' }}>
       {sections.map(({ path, name }, index) => (
         <div key={index}>
+          {index === 0 && <Root />}
           <Section name={name} path={path} />
-          {index < sections.length - 1 ? <Separator /> : null}
+          {index < sections.length - 1 && <Separator />}
         </div>
       ))}
     </div>
   );
 };
 
+const Root = () => (
+  <Link
+    style={{ margin: '0 4px' }}
+    className='breadcrumb-link'
+    href='/'
+  >
+    {'/'}
+  </Link>
+);
+
 const Separator = () => {
-  return <span style={{ margin: '0 4px' }}>{'>'}</span>;
+  return <span style={{ margin: '0 4px' }}>{'/'}</span>;
 };
 
 const Section: FC<{ name: string, path: string }> = ({ name, path }) => {
