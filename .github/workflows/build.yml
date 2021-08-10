@@ -10,8 +10,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Build and Push
     strategy:
-    matrix:
-      os: [ubuntu-latest, macos-latest]
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: git-checkout
         uses: actions/checkout@v2
