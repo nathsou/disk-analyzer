@@ -18,7 +18,7 @@ const useDirContents = (path: string, showDirSize = false): UseQueryResult<DirCo
   const axios = useAxios();
 
   return useQuery(['ls', path], async () => {
-    const { data } = await axios.get('api/ls', {
+    const { data } = await axios.get('ls', {
       params: {
         path,
         show_dir_size: showDirSize,

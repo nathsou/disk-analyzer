@@ -103,5 +103,9 @@ pub async fn serve() {
 
     println!("Listening on port 3030");
 
-    warp::serve(api).run(([127, 0, 0, 1], 3030)).await;
+    let spa_index = "front/index.html";
+    let front = warp::fs::dir("front").or(warp::any().and(warp::fs::file(spa_index)));
+    let routes = api.or(front);
+
+    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }

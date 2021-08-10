@@ -22,7 +22,7 @@ export const useLargest = (path: string): UseQueryResult<DirEndpointData> => {
   const axios = useAxios();
 
   return useQuery(['dir', path], async () => {
-    const { data } = await axios.get('api/dir', {
+    const { data } = await axios.get('dir', {
       params: {
         path
       }
