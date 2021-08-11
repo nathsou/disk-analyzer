@@ -22,7 +22,7 @@ const queryClient = new QueryClient({
 ///@ts-ignore
 const PRODUCTION = import.meta.env.MODE !== 'development';
 
-const PORT = PRODUCTION ? 3030 : 3000;
+const PORT = PRODUCTION ? 7621 : 3000;
 
 const axiosInstance = axios.create({
   baseURL: `http://localhost:${PORT}/api/`

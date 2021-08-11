@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
 use warp::{Filter, Rejection};
+use webbrowser;
 
 #[derive(Deserialize)]
 pub struct DirInfoParams {
@@ -131,11 +132,18 @@ pub async fn serve() {
         .and(dir_req.or(ls_req).or(home_req))
         .with(warp::log("dev"));
 
-    println!("Listening on port 3030");
+    let port = 7621;
+
+    println!("open your browser: http://localhost:{}/", port);
 
     let spa_index = "front/index.html";
     let front = warp::fs::dir("front").or(warp::any().and(warp::fs::file(spa_index)));
     let routes = api.or(front);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    match webbrowser::open(&format!("http://localhost:{}", port)) {
+        Err(err) => println!("Could not open the web browser: {}", err),
+        _ => (),
+    }
+
+    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
 }
