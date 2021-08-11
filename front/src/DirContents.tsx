@@ -4,7 +4,7 @@ import { useAxios } from './AxiosProvider';
 import { Link, useLocation } from 'wouter';
 import { RepartitionPlot } from './RepartitionPlot';
 import { Path } from './Path';
-import { formatSize } from './utils';
+import { formatSize, joinPaths } from './utils';
 
 export interface DirContentsProps {
   path: string
@@ -65,7 +65,7 @@ export const DirContents: FC<DirContentsProps> = ({ path }) => {
             <li>Total: <b>{formatSize(size)}</b></li>
             {directories.map(({ path: dirName, size }) =>
               <li key={dirName}>
-                <Link href={`/ls${dirName}`}>{dirName.replace(path, '')}</Link> - {formatSize(size)}
+                <Link href={joinPaths('/ls', dirName)}>{dirName.replace(path, '')}</Link> - {formatSize(size)}
               </li>
             )}
           </ul>

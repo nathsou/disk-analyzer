@@ -9,3 +9,15 @@ export const formatSize = (bytes: number, isMac = true, precision = 2): string =
   if (bytes < gb) return `${(bytes / mb).toFixed(precision)} mb`;
   return `${(bytes / gb).toFixed(precision)} gb`;
 };
+
+export const joinPaths = (lhs: string, rhs: string): string => {
+  if (lhs.endsWith('/') && rhs.startsWith('/')) {
+    return lhs.slice(0, -1) + rhs;
+  }
+
+  if (lhs.endsWith('/') || rhs.startsWith('/')) {
+    return lhs + rhs;
+  }
+
+  return `${lhs}/${rhs}`;
+};

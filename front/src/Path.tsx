@@ -1,5 +1,7 @@
 import React, { FC, useMemo } from "react";
 import { Link, useLocation } from "wouter";
+import { useOSInfo } from "./Home";
+import { joinPaths } from "./utils";
 
 export const Path: FC<{ path: string }> = ({ path }) => {
   const sections = useMemo(() => (
@@ -22,15 +24,23 @@ export const Path: FC<{ path: string }> = ({ path }) => {
   );
 };
 
-const Root = () => (
-  <Link
+const Root = () => {
+  const info = useOSInfo();
+
+  if (info.data === undefined) {
+    return null;
+  }
+
+  const { root } = info.data;
+
+  return <Link
     style={{ margin: '0 4px' }}
     className='breadcrumb-link'
-    href='/'
+    href={joinPaths('/ls', root)}
   >
-    {'/'}
+    {root}
   </Link>
-);
+};
 
 const Separator = () => {
   return <span style={{ margin: '0 4px' }}>{'/'}</span>;

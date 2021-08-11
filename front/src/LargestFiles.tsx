@@ -3,7 +3,7 @@ import { useQuery, UseQueryResult } from 'react-query';
 import { Link } from 'wouter';
 import { useAxios } from './AxiosProvider';
 import { RepartitionPlot } from './RepartitionPlot';
-import { formatSize } from './utils';
+import { formatSize, joinPaths } from './utils';
 
 export interface LargestFilesProps {
   path: string
@@ -50,7 +50,7 @@ export const LargestFiles: FC<LargestFilesProps> = ({ path }) => {
       <ul>
         {largest.data?.biggest_dirs.map(({ size, path: dirPath }: { size: number, path: string }) =>
           <li key={dirPath}>
-            <Link href={`/dir${dirPath}`}>{`${dirPath.replace(path, '')}`}</Link> {formatSize(size)}
+            <Link href={joinPaths('/dir', dirPath)}>{`${dirPath.replace(path, '')}`}</Link> {formatSize(size)}
           </li>
         )}
       </ul>

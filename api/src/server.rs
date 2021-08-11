@@ -12,11 +12,6 @@ pub struct DirInfoParams {
     pub dirs_count: Option<usize>,
 }
 
-#[derive(Serialize)]
-struct ErrorMessage {
-    pub message: String,
-}
-
 #[derive(Deserialize, Serialize)]
 struct DirInfoRes {
     pub path: String,
@@ -27,8 +22,17 @@ struct DirInfoRes {
     pub biggest_files: Vec<DocInfo>,
 }
 
-fn error_msg(msg: String) -> Result<warp::reply::Json, warp::Rejection> {
-    Ok(warp::reply::json(&ErrorMessage { message: msg }))
+#[derive(Serialize, Debug)]
+struct ErrorMessage {
+    pub message: String,
+}
+
+impl warp::reject::Reject for ErrorMessage {}
+
+fn error_msg(msg: &str) -> Result<warp::reply::Json, warp::Rejection> {
+    Err(warp::reject::custom(ErrorMessage {
+        message: msg.to_owned(),
+    }))
 }
 
 async fn get_dir_info(params: DirInfoParams) -> Result<impl warp::Reply, Rejection> {
@@ -55,10 +59,10 @@ async fn get_dir_info(params: DirInfoParams) -> Result<impl warp::Reply, Rejecti
                     biggest_files: biggest_files.values(),
                 }))
             }
-            Err(err) => error_msg(format!("{}", err)),
+            Err(err) => error_msg(&format!("{}", err)),
         }
     } else {
-        error_msg(String::from("'path' is required"))
+        error_msg("'path' is required")
     }
 }
 
@@ -75,10 +79,32 @@ async fn get_dir_contents(
     if let Some(path) = params.path {
         match ls(Path::new(&path), params.show_dir_size, db) {
             Ok(contents) => Ok(warp::reply::json(&contents)),
-            Err(err) => error_msg(format!("{}", err)),
+            Err(err) => error_msg(&format!("{}", err)),
         }
     } else {
-        error_msg(String::from("'path' is required"))
+        error_msg("'path' is required")
+    }
+}
+
+#[derive(Serialize)]
+struct OSInfo {
+    home: String,
+    root: String,
+    os: String,
+}
+
+async fn get_os_info() -> Result<impl warp::Reply, Rejection> {
+    match dirs::home_dir() {
+        Some(home) => Ok(warp::reply::json(&OSInfo {
+            home: format!("{}", home.display()),
+            os: format!("{}", std::env::consts::OS),
+            root: String::from(if std::env::consts::OS == "windows" {
+                "C:"
+            } else {
+                "/"
+            }),
+        })),
+        None => error_msg("Could not retrieve your home directory"),
     }
 }
 
@@ -97,8 +123,12 @@ pub async fn serve() {
         .and(warp::query::<DirContentsParams>())
         .and_then(move |params| get_dir_contents(params, db.clone()));
 
+    let home_req = warp::path!("os_info")
+        .and(warp::get())
+        .and_then(get_os_info);
+
     let api = warp::path("api")
-        .and(dir_req.or(ls_req))
+        .and(dir_req.or(ls_req).or(home_req))
         .with(warp::log("dev"));
 
     println!("Listening on port 3030");
