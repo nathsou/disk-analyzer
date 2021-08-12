@@ -13,9 +13,10 @@ export const Path: FC<{ path: string }> = ({ path }) => {
 
   return (
     <div style={{ display: 'flex' }}>
+      <Root />
       {sections.map(({ path, name }, index) => (
         <div key={index}>
-          {index === 0 ? <Root name={name} /> : <Section name={name} path={path} />}
+          <Section name={name} path={path} />
           {index < sections.length - 1 && <Separator />}
         </div>
       ))}
