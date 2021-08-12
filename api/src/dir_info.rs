@@ -80,31 +80,45 @@ pub struct DirContents {
     pub size: usize,
 }
 
+fn print_err(source: &str, path: &Path, error: std::io::Error) {
+    println!("{} error for '{}' ({:?}) : {}", source, path.display(), error.kind(), error);
+}
+
 pub fn ls(path: &Path, show_dir_size: bool, db: Arc<sled::Db>) -> io::Result<DirContents> {
     let mut files = vec![];
     let mut dirs = vec![];
 
     if path.is_dir() {
-        if let Ok(entries) = read_dir(path) {
-            for entry in entries {
-                let sub_path = entry?.path();
-                let md = symlink_metadata(&sub_path)?;
-
-                if md.is_file() {
-                    files.push(DirContentsFileInfo {
-                        path: str_of_path(&sub_path),
-                        size: md.len() as usize,
-                    });
-                } else if md.is_dir() {
-                    dirs.push(DirContentsInfo {
-                        path: str_of_path(&sub_path),
-                        size: if show_dir_size {
-                            Some(dir_size(&sub_path, db.clone())?)
-                        } else {
-                            None
-                        },
-                    });
+        match read_dir(path) {
+            Ok(entries) => {
+                for entry in entries {
+                    let sub_path = entry?.path();
+                    match symlink_metadata(&sub_path) {
+                        Ok(md) => {
+                            if md.is_file() {
+                                files.push(DirContentsFileInfo {
+                                    path: str_of_path(&sub_path),
+                                    size: md.len() as usize,
+                                });
+                            } else if md.is_dir() {
+                                dirs.push(DirContentsInfo {
+                                    path: str_of_path(&sub_path),
+                                    size: if show_dir_size {
+                                        Some(dir_size(&sub_path, db.clone())?)
+                                    } else {
+                                        None
+                                    },
+                                });
+                            }
+                        }
+                        Err(err) => {
+                            print_err("symlink_metadata", path, err);
+                        }
+                    }
                 }
+            }
+            Err(err) => {
+                print_err("read_dir", path, err);
             }
         }
     }
