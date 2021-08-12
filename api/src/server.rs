@@ -100,7 +100,7 @@ async fn get_os_info() -> Result<impl warp::Reply, Rejection> {
             home: format!("{}", home.display()),
             os: format!("{}", std::env::consts::OS),
             root: String::from(if std::env::consts::OS == "windows" {
-                "C:"
+                r"C:\"
             } else {
                 "/"
             }),
@@ -124,17 +124,17 @@ pub async fn serve() {
         .and(warp::query::<DirContentsParams>())
         .and_then(move |params| get_dir_contents(params, db.clone()));
 
-    let home_req = warp::path!("os_info")
+    let os_info_req = warp::path!("os_info")
         .and(warp::get())
         .and_then(get_os_info);
 
     let api = warp::path("api")
-        .and(dir_req.or(ls_req).or(home_req))
+        .and(dir_req.or(ls_req).or(os_info_req))
         .with(warp::log("dev"));
 
     let port = 7621;
 
-    println!("open your browser: http://localhost:{}/", port);
+    println!("disk-analyzer is running on http://localhost:{}/", port);
 
     let executable_path = std::env::current_exe().expect("Could not get the executable path");
     let executable_dir = executable_path
