@@ -136,6 +136,14 @@ pub async fn serve() {
 
     println!("open your browser: http://localhost:{}/", port);
 
+    let executable_path = std::env::current_exe().expect("Could not get the executable path");
+    let executable_dir = executable_path
+        .parent()
+        .expect("Could not get the executable's parent directory");
+
+    std::env::set_current_dir(executable_dir)
+        .expect("Could not change the current working directory");
+
     let spa_index = "front/index.html";
     let front = warp::fs::dir("front").or(warp::any().and(warp::fs::file(spa_index)));
     let routes = api.or(front);
