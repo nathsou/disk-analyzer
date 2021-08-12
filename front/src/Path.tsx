@@ -5,18 +5,17 @@ import { joinPaths } from "./utils";
 
 export const Path: FC<{ path: string }> = ({ path }) => {
   const sections = useMemo(() => (
-    path.split('/').slice(1).map(decodeURI).reduce<Array<{ name: string, path: string }>>((prev, name) => {
+    path.split(/\//).slice(1).map(decodeURI).reduce<Array<{ name: string, path: string }>>((prev, name) => {
       const { path } = prev[prev.length - 1] ?? { name: '', path: '' };
       return [...prev, { path: `${path}/${name}`, name }];
-    }, []).slice(1)
+    }, [])
   ), [path]);
 
   return (
     <div style={{ display: 'flex' }}>
-      <Root />
       {sections.map(({ path, name }, index) => (
         <div key={index}>
-          <Section name={name} path={path} />
+          {index === 0 ? <Root name={name} /> : <Section name={name} path={path} />}
           {index < sections.length - 1 && <Separator />}
         </div>
       ))}
@@ -24,7 +23,7 @@ export const Path: FC<{ path: string }> = ({ path }) => {
   );
 };
 
-const Root = () => {
+const Root: FC<{ name?: string }> = ({ name }) => {
   const info = useOSInfo();
 
   if (info.data === undefined) {
@@ -38,7 +37,7 @@ const Root = () => {
     className='breadcrumb-link'
     href={joinPaths('/ls/', encodeURI(root))}
   >
-    {root}
+    {name ?? root}
   </Link>
 };
 
